@@ -15,7 +15,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
-import { Heart, ArrowLeft, Send } from "lucide-react";
+import { Heart, ArrowLeft, Send, Lock, Unlock, Users } from "lucide-react";
 
 export default function IdeaDetail() {
   const { id } = useParams();
@@ -26,6 +26,7 @@ export default function IdeaDetail() {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
+  const [requestSent, setRequestSent] = useState(false);
 
   useEffect(() => {
     const fetchIdea = async () => {
@@ -86,6 +87,27 @@ export default function IdeaDetail() {
     }
   };
 
+  const handleCollabRequest = async () => {
+    if (!user) {
+      alert("로그인이 필요합니다");
+      return;
+    }
+
+    try {
+      await addDoc(collection(db, "ideas", id, "collabRequests"), {
+        userId: user.uid,
+        userName: user.displayName,
+        userPhoto: user.photoURL,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+      setRequestSent(true);
+      alert("협업 신청이 완료되었습니다. 작성자의 승인을 기다려주세요.");
+    } catch (error) {
+      console.error("협업 신청 실패:", error);
+    }
+  };
+
   const handleComment = async (e) => {
     e.preventDefault();
 
@@ -140,6 +162,13 @@ export default function IdeaDetail() {
   }
 
   const isLiked = user && idea.likes?.includes(user.uid);
+  const likeCount = idea.likes?.length || 0;
+  const isAuthor = user && user.uid === idea.authorId;
+  const isApproved = user && idea.approvedUsers?.includes(user.uid);
+
+  // 공개 레벨 체크
+  const canViewContent = likeCount >= 10 || isAuthor;
+  const canViewSecret = isApproved || isAuthor;
 
   return (
     <div className="min-h-screen bg-gray-900">
@@ -170,9 +199,59 @@ export default function IdeaDetail() {
           </div>
         </div>
 
+        {/* Lv1: 제목 (항상 공개) */}
         <h2 className="text-2xl font-bold text-white mb-4">{idea.title}</h2>
 
-        <p className="text-gray-300 whitespace-pre-wrap mb-4">{idea.content}</p>
+        {/* Lv2: 상세 내용 */}
+        {canViewContent ? (
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Unlock size={16} className="text-green-500" />
+              <span className="text-xs text-green-500">Lv2 공개됨</span>
+            </div>
+            <p className="text-gray-300 whitespace-pre-wrap">{idea.content}</p>
+          </div>
+        ) : (
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6 text-center">
+            <Lock size={32} className="text-yellow-500 mx-auto mb-2" />
+            <p className="text-yellow-500 font-medium">상세 내용 잠김</p>
+            <p className="text-gray-400 text-sm mt-1">
+              좋아요 {likeCount}/10개 - {10 - likeCount}개 더 필요
+            </p>
+          </div>
+        )}
+
+        {/* Lv3: 핵심 노하우 */}
+        {idea.secretContent &&
+          (canViewSecret ? (
+            <div className="bg-gray-800 border border-red-500 rounded-lg p-4 mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Unlock size={16} className="text-red-500" />
+                <span className="text-xs text-red-500">Lv3 핵심 노하우</span>
+              </div>
+              <p className="text-gray-300 whitespace-pre-wrap">
+                {idea.secretContent}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6 text-center">
+              <Lock size={32} className="text-red-500 mx-auto mb-2" />
+              <p className="text-red-500 font-medium">핵심 노하우 잠김</p>
+              <p className="text-gray-400 text-sm mt-1 mb-4">
+                협업 신청 후 작성자 승인이 필요합니다
+              </p>
+              {user && !isAuthor && (
+                <button
+                  onClick={handleCollabRequest}
+                  disabled={requestSent}
+                  className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600 disabled:opacity-50"
+                >
+                  <Users size={16} className="inline mr-2" />
+                  {requestSent ? "신청 완료" : "협업 신청하기"}
+                </button>
+              )}
+            </div>
+          ))}
 
         {idea.tags?.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
@@ -195,7 +274,7 @@ export default function IdeaDetail() {
             }`}
           >
             <Heart size={24} fill={isLiked ? "currentColor" : "none"} />
-            <span>{idea.likes?.length || 0}명이 좋아합니다</span>
+            <span>{likeCount}명이 좋아합니다</span>
           </button>
         </div>
 
