@@ -15,18 +15,29 @@ import {
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
-import { Heart, ArrowLeft, Send, Lock, Unlock, Users } from "lucide-react";
+import { useCredits } from "../hooks/useCredits";
+import {
+  Heart,
+  ArrowLeft,
+  Send,
+  Lock,
+  Unlock,
+  Users,
+  Coins,
+} from "lucide-react";
 
 export default function IdeaDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { credits, useCredits: spendCredits } = useCredits(user?.uid);
 
   const [idea, setIdea] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
   const [requestSent, setRequestSent] = useState(false);
+  const [unlockedWithCredits, setUnlockedWithCredits] = useState(false);
 
   useEffect(() => {
     const fetchIdea = async () => {
@@ -84,6 +95,24 @@ export default function IdeaDetail() {
         ...prev,
         likes: [...(prev.likes || []), user.uid],
       }));
+    }
+  };
+
+  const handleUnlockWithCredits = async () => {
+    if (!user) {
+      alert("로그인이 필요합니다");
+      return;
+    }
+
+    if (credits < 50) {
+      alert(`크레딧이 부족합니다. (보유: ${credits}, 필요: 50)`);
+      return;
+    }
+
+    const success = await spendCredits(50);
+    if (success) {
+      setUnlockedWithCredits(true);
+      alert("50 크레딧을 사용하여 잠금 해제했습니다!");
     }
   };
 
@@ -167,20 +196,32 @@ export default function IdeaDetail() {
   const isApproved = user && idea.approvedUsers?.includes(user.uid);
 
   // 공개 레벨 체크
-  const canViewContent = likeCount >= 10 || isAuthor;
+  const canViewContent = likeCount >= 10 || isAuthor || unlockedWithCredits;
   const canViewSecret = isApproved || isAuthor;
 
   return (
     <div className="min-h-screen bg-gray-900">
       <header className="border-b border-gray-800 px-4 py-3 sticky top-0 bg-gray-900 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="text-gray-400 hover:text-white"
-          >
-            <ArrowLeft size={24} />
-          </button>
-          <h1 className="text-lg font-bold text-white">아이디어</h1>
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="text-gray-400 hover:text-white"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <h1 className="text-lg font-bold text-white">아이디어</h1>
+          </div>
+
+          {/* 크레딧 표시 */}
+          {user && (
+            <div className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
+              <Coins size={16} className="text-yellow-500" />
+              <span className="text-yellow-500 text-sm font-medium">
+                {credits}
+              </span>
+            </div>
+          )}
         </div>
       </header>
 
@@ -215,9 +256,25 @@ export default function IdeaDetail() {
           <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6 text-center">
             <Lock size={32} className="text-yellow-500 mx-auto mb-2" />
             <p className="text-yellow-500 font-medium">상세 내용 잠김</p>
-            <p className="text-gray-400 text-sm mt-1">
+            <p className="text-gray-400 text-sm mt-1 mb-4">
               좋아요 {likeCount}/10개 - {10 - likeCount}개 더 필요
             </p>
+
+            {/* 크레딧으로 잠금 해제 */}
+            {user && !isAuthor && (
+              <div className="border-t border-gray-700 pt-4 mt-4">
+                <p className="text-gray-400 text-sm mb-2">
+                  또는 크레딧으로 바로 열기
+                </p>
+                <button
+                  onClick={handleUnlockWithCredits}
+                  className="bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-400"
+                >
+                  <Coins size={16} className="inline mr-2" />
+                  50 크레딧으로 잠금 해제
+                </button>
+              </div>
+            )}
           </div>
         )}
 

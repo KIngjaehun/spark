@@ -4,10 +4,13 @@ import { signOut } from "firebase/auth";
 import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { auth, db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
+import { useCredits } from "../hooks/useCredits";
 import IdeaCard from "../components/IdeaCard";
+import { Coins } from "lucide-react";
 
 export default function Home() {
   const { user, loading } = useAuth();
+  const { credits } = useCredits(user?.uid);
   const navigate = useNavigate();
   const [ideas, setIdeas] = useState([]);
 
@@ -39,13 +42,20 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* 헤더 */}
-      <header className="border-b border-gray-800 px-4 py-3 sticky top-0 bg-gray-900 z-10 w-full">
+      <header className="border-b border-gray-800 px-4 py-3 sticky top-0 bg-gray-900 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <h1 className="text-xl font-bold text-white">Spark 🔥</h1>
 
           {user ? (
             <div className="flex items-center gap-4">
+              {/* 크레딧 표시 */}
+              <div className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
+                <Coins size={16} className="text-yellow-500" />
+                <span className="text-yellow-500 text-sm font-medium">
+                  {credits}
+                </span>
+              </div>
+
               <Link
                 to="/write"
                 className="bg-orange-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-600"
@@ -76,7 +86,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 메인 */}
       <main className="max-w-2xl mx-auto px-4 py-6">
         {ideas.length === 0 ? (
           <p className="text-gray-400 text-center py-12">
