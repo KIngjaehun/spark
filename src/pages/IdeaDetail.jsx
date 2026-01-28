@@ -27,7 +27,6 @@ export default function IdeaDetail() {
   const [newComment, setNewComment] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // 아이디어 불러오기
   useEffect(() => {
     const fetchIdea = async () => {
       const docRef = doc(db, "ideas", id);
@@ -42,7 +41,6 @@ export default function IdeaDetail() {
     fetchIdea();
   }, [id]);
 
-  // 댓글 실시간 구독
   useEffect(() => {
     const q = query(
       collection(db, "ideas", id, "comments"),
@@ -106,7 +104,6 @@ export default function IdeaDetail() {
       createdAt: serverTimestamp(),
     });
 
-    // 댓글 수 업데이트
     await updateDoc(doc(db, "ideas", id), {
       commentCount: comments.length + 1,
     });
@@ -116,7 +113,7 @@ export default function IdeaDetail() {
 
   const formatDate = (timestamp) => {
     if (!timestamp) return "";
-    const date = timestamp.toDate();
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString("ko-KR", {
       year: "numeric",
       month: "long",
@@ -146,7 +143,6 @@ export default function IdeaDetail() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      {/* 헤더 */}
       <header className="border-b border-gray-800 px-4 py-3 sticky top-0 bg-gray-900 z-10">
         <div className="max-w-2xl mx-auto flex items-center gap-4">
           <button
@@ -160,7 +156,6 @@ export default function IdeaDetail() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* 작성자 */}
         <div className="flex items-center gap-3 mb-4">
           <img
             src={idea.authorPhoto}
@@ -175,13 +170,10 @@ export default function IdeaDetail() {
           </div>
         </div>
 
-        {/* 제목 */}
         <h2 className="text-2xl font-bold text-white mb-4">{idea.title}</h2>
 
-        {/* 내용 */}
         <p className="text-gray-300 whitespace-pre-wrap mb-4">{idea.content}</p>
 
-        {/* 태그 */}
         {idea.tags?.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
             {idea.tags.map((tag, index) => (
@@ -195,7 +187,6 @@ export default function IdeaDetail() {
           </div>
         )}
 
-        {/* 좋아요 */}
         <div className="border-t border-b border-gray-800 py-4 mb-6">
           <button
             onClick={handleLike}
@@ -208,13 +199,28 @@ export default function IdeaDetail() {
           </button>
         </div>
 
-        {/* 댓글 */}
+        {/* 소유권 증명 */}
+        {idea.ideaHash && (
+          <div className="bg-gray-800 rounded-lg p-4 mb-6">
+            <p className="text-xs text-gray-500 mb-1">
+              🔐 아이디어 소유권 증명
+            </p>
+            <p className="text-xs text-gray-400 font-mono break-all">
+              해시: {idea.ideaHash}
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              등록:{" "}
+              {idea.hashTimestamp &&
+                new Date(idea.hashTimestamp).toLocaleString("ko-KR")}
+            </p>
+          </div>
+        )}
+
         <div>
           <h3 className="text-white font-bold mb-4">
             댓글 {comments.length}개
           </h3>
 
-          {/* 댓글 목록 */}
           <div className="space-y-4 mb-6">
             {comments.map((comment) => (
               <div key={comment.id} className="bg-gray-800 rounded-lg p-4">
@@ -236,7 +242,6 @@ export default function IdeaDetail() {
             ))}
           </div>
 
-          {/* 댓글 입력 */}
           {user ? (
             <form onSubmit={handleComment} className="flex gap-2">
               <input

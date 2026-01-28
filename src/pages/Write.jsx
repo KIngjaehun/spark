@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
+import { generateIdeaHash } from "../utils/hash";
 
 export default function Write() {
   const navigate = useNavigate();
@@ -29,6 +30,15 @@ export default function Write() {
     setLoading(true);
 
     try {
+      const now = Date.now();
+
+      const ideaHash = await generateIdeaHash(
+        title.trim(),
+        content.trim(),
+        user.uid,
+        now
+      );
+
       await addDoc(collection(db, "ideas"), {
         title: title.trim(),
         content: content.trim(),
@@ -40,6 +50,9 @@ export default function Write() {
         authorName: user.displayName,
         authorPhoto: user.photoURL,
         likes: [],
+        commentCount: 0,
+        ideaHash: ideaHash,
+        hashTimestamp: now,
         createdAt: serverTimestamp(),
       });
 
@@ -105,6 +118,13 @@ export default function Write() {
               placeholder="예: AI, 자동화, 사이드프로젝트"
               className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
             />
+          </div>
+
+          <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
+            <p className="text-sm text-gray-400">
+              🔐 작성 시 타임스탬프와 해시가 자동 생성되어 아이디어 소유권이
+              기록됩니다.
+            </p>
           </div>
 
           <button
