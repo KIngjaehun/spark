@@ -24,6 +24,8 @@ import {
   Unlock,
   Users,
   Coins,
+  Shield,
+  Sparkles,
 } from "lucide-react";
 
 export default function IdeaDetail() {
@@ -194,9 +196,11 @@ export default function IdeaDetail() {
   const likeCount = idea.likes?.length || 0;
   const isAuthor = user && user.uid === idea.authorId;
   const isApproved = user && idea.approvedUsers?.includes(user.uid);
+  const isProtected = idea.protectedMode;
 
-  // 공개 레벨 체크
-  const canViewContent = likeCount >= 10 || isAuthor || unlockedWithCredits;
+  // 공개 레벨 체크 (보호 모드일 때만 적용)
+  const canViewContent =
+    !isProtected || likeCount >= 10 || isAuthor || unlockedWithCredits;
   const canViewSecret = isApproved || isAuthor;
 
   return (
@@ -213,7 +217,6 @@ export default function IdeaDetail() {
             <h1 className="text-lg font-bold text-white">아이디어</h1>
           </div>
 
-          {/* 크레딧 표시 */}
           {user && (
             <div className="flex items-center gap-1 bg-gray-800 px-3 py-1 rounded-full">
               <Coins size={16} className="text-yellow-500" />
@@ -226,6 +229,22 @@ export default function IdeaDetail() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
+        {/* 모드 뱃지 */}
+        <div className="mb-4">
+          {isProtected ? (
+            <div className="inline-flex items-center gap-1 bg-blue-500/20 px-3 py-1 rounded-full">
+              <Shield size={14} className="text-blue-400" />
+              <span className="text-sm text-blue-400">보호된 아이디어</span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1 bg-orange-500/20 px-3 py-1 rounded-full">
+              <Sparkles size={14} className="text-orange-400" />
+              <span className="text-sm text-orange-400">공개 아이디어</span>
+            </div>
+          )}
+        </div>
+
+        {/* 작성자 정보 */}
         <div className="flex items-center gap-3 mb-4">
           <img
             src={idea.authorPhoto}
@@ -240,46 +259,56 @@ export default function IdeaDetail() {
           </div>
         </div>
 
-        {/* Lv1: 제목 (항상 공개) */}
+        {/* 제목 */}
         <h2 className="text-2xl font-bold text-white mb-4">{idea.title}</h2>
 
-        {/* Lv2: 상세 내용 */}
-        {canViewContent ? (
-          <div className="mb-6">
-            <div className="flex items-center gap-2 mb-2">
-              <Unlock size={16} className="text-green-500" />
-              <span className="text-xs text-green-500">Lv2 공개됨</span>
-            </div>
-            <p className="text-gray-300 whitespace-pre-wrap">{idea.content}</p>
-          </div>
-        ) : (
-          <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6 text-center">
-            <Lock size={32} className="text-yellow-500 mx-auto mb-2" />
-            <p className="text-yellow-500 font-medium">상세 내용 잠김</p>
-            <p className="text-gray-400 text-sm mt-1 mb-4">
-              좋아요 {likeCount}/10개 - {10 - likeCount}개 더 필요
-            </p>
-
-            {/* 크레딧으로 잠금 해제 */}
-            {user && !isAuthor && (
-              <div className="border-t border-gray-700 pt-4 mt-4">
-                <p className="text-gray-400 text-sm mb-2">
-                  또는 크레딧으로 바로 열기
-                </p>
-                <button
-                  onClick={handleUnlockWithCredits}
-                  className="bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-400"
-                >
-                  <Coins size={16} className="inline mr-2" />
-                  50 크레딧으로 잠금 해제
-                </button>
+        {/* 내용 - 보호 모드 분기 */}
+        {isProtected ? (
+          // 보호 모드: Lv2 잠금 적용
+          canViewContent ? (
+            <div className="mb-6">
+              <div className="flex items-center gap-2 mb-2">
+                <Unlock size={16} className="text-green-500" />
+                <span className="text-xs text-green-500">Lv2 공개됨</span>
               </div>
-            )}
+              <p className="text-gray-300 whitespace-pre-wrap">
+                {idea.content}
+              </p>
+            </div>
+          ) : (
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6 text-center">
+              <Lock size={32} className="text-yellow-500 mx-auto mb-2" />
+              <p className="text-yellow-500 font-medium">상세 내용 잠김</p>
+              <p className="text-gray-400 text-sm mt-1 mb-4">
+                좋아요 {likeCount}/10개 - {10 - likeCount}개 더 필요
+              </p>
+
+              {user && !isAuthor && (
+                <div className="border-t border-gray-700 pt-4 mt-4">
+                  <p className="text-gray-400 text-sm mb-2">
+                    또는 크레딧으로 바로 열기
+                  </p>
+                  <button
+                    onClick={handleUnlockWithCredits}
+                    className="bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-400"
+                  >
+                    <Coins size={16} className="inline mr-2" />
+                    50 크레딧으로 잠금 해제
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        ) : (
+          // 가벼운 모드: 전체 공개
+          <div className="mb-6">
+            <p className="text-gray-300 whitespace-pre-wrap">{idea.content}</p>
           </div>
         )}
 
-        {/* Lv3: 핵심 노하우 */}
-        {idea.secretContent &&
+        {/* Lv3: 핵심 노하우 (보호 모드에서만) */}
+        {isProtected &&
+          idea.secretContent &&
           (canViewSecret ? (
             <div className="bg-gray-800 border border-red-500 rounded-lg p-4 mb-6">
               <div className="flex items-center gap-2 mb-2">
@@ -310,6 +339,7 @@ export default function IdeaDetail() {
             </div>
           ))}
 
+        {/* 태그 */}
         {idea.tags?.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
             {idea.tags.map((tag, index) => (
@@ -323,6 +353,7 @@ export default function IdeaDetail() {
           </div>
         )}
 
+        {/* 좋아요 */}
         <div className="border-t border-b border-gray-800 py-4 mb-6">
           <button
             onClick={handleLike}
@@ -335,8 +366,8 @@ export default function IdeaDetail() {
           </button>
         </div>
 
-        {/* 소유권 증명 */}
-        {idea.ideaHash && (
+        {/* 소유권 증명 (보호 모드에서만) */}
+        {isProtected && idea.ideaHash && (
           <div className="bg-gray-800 rounded-lg p-4 mb-6">
             <p className="text-xs text-gray-500 mb-1">
               🔐 아이디어 소유권 증명
@@ -352,6 +383,7 @@ export default function IdeaDetail() {
           </div>
         )}
 
+        {/* 댓글 */}
         <div>
           <h3 className="text-white font-bold mb-4">
             댓글 {comments.length}개
