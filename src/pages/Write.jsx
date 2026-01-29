@@ -4,7 +4,7 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
 import { generateIdeaHash } from "../utils/hash";
-import { Shield, Sparkles } from "lucide-react";
+import { Shield, Sparkles, X, Info } from "lucide-react";
 
 export default function Write() {
   const navigate = useNavigate();
@@ -25,8 +25,13 @@ export default function Write() {
       return;
     }
 
-    if (!title.trim() || !content.trim()) {
-      alert("제목과 내용을 입력해주세요");
+    if (!title.trim()) {
+      alert("제목을 입력해주세요");
+      return;
+    }
+
+    if (!content.trim()) {
+      alert("내용을 입력해주세요");
       return;
     }
 
@@ -51,7 +56,6 @@ export default function Write() {
         protectedMode: protectedMode,
       };
 
-      // 보호 모드일 때만 해시 + 비밀 내용 추가
       if (protectedMode) {
         const ideaHash = await generateIdeaHash(
           title.trim(),
@@ -81,25 +85,32 @@ export default function Write() {
 
   return (
     <div className="min-h-screen bg-gray-900">
-      <header className="border-b border-gray-800 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <h1 className="text-xl font-bold text-white">아이디어 작성</h1>
+      <header className="sticky top-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <button
-            onClick={() => navigate("/")}
-            className="text-gray-400 hover:text-white"
+            onClick={() => navigate(-1)}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-800 transition"
           >
-            취소
+            <X size={20} className="text-gray-400" />
+          </button>
+          <h1 className="text-lg font-bold text-white">새 아이디어</h1>
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !title.trim() || !content.trim()}
+            className="bg-orange-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+          >
+            {loading ? "작성 중..." : "공유"}
           </button>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-8">
+      <main className="max-w-2xl mx-auto px-4 py-6">
         {/* 모드 선택 */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <button
             type="button"
             onClick={() => setProtectedMode(false)}
-            className={`p-4 rounded-lg border-2 transition ${
+            className={`p-4 rounded-2xl border-2 transition ${
               !protectedMode
                 ? "border-orange-500 bg-orange-500/10"
                 : "border-gray-700 bg-gray-800 hover:border-gray-600"
@@ -112,21 +123,19 @@ export default function Write() {
               }`}
             />
             <p
-              className={`font-medium ${
+              className={`font-medium text-sm ${
                 !protectedMode ? "text-orange-500" : "text-gray-300"
               }`}
             >
-              🎈 가벼운 아이디어
+              🎈 가벼운
             </p>
-            <p className="text-xs text-gray-500 mt-1">
-              자유롭게 공유, 전체 공개
-            </p>
+            <p className="text-xs text-gray-500 mt-1">전체 공개</p>
           </button>
 
           <button
             type="button"
             onClick={() => setProtectedMode(true)}
-            className={`p-4 rounded-lg border-2 transition ${
+            className={`p-4 rounded-2xl border-2 transition ${
               protectedMode
                 ? "border-blue-500 bg-blue-500/10"
                 : "border-gray-700 bg-gray-800 hover:border-gray-600"
@@ -139,132 +148,94 @@ export default function Write() {
               }`}
             />
             <p
-              className={`font-medium ${
+              className={`font-medium text-sm ${
                 protectedMode ? "text-blue-500" : "text-gray-300"
               }`}
             >
-              🔐 진지한 아이디어
+              🔐 보호
             </p>
-            <p className="text-xs text-gray-500 mt-1">
-              소유권 보호, 단계별 공개
-            </p>
+            <p className="text-xs text-gray-500 mt-1">단계별 공개</p>
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* 제목 */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              제목
-              {protectedMode && (
-                <span className="text-green-500 ml-2">
-                  (Lv1 - 모든 사람 공개)
-                </span>
-              )}
-            </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="아이디어를 한 줄로 표현해주세요"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+              placeholder="아이디어 제목"
+              className="w-full bg-transparent text-xl font-bold text-white placeholder-gray-500 focus:outline-none"
+              maxLength={100}
             />
+            <p className="text-right text-xs text-gray-500 mt-1">
+              {title.length}/100
+            </p>
           </div>
 
-          {/* 상세 내용 */}
+          {/* 구분선 */}
+          <div className="border-t border-gray-800" />
+
+          {/* 내용 */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              {protectedMode ? "상세 내용" : "내용"}
-              {protectedMode && (
-                <span className="text-yellow-500 ml-2">
-                  (Lv2 - 좋아요 10개 이상 시 공개)
-                </span>
-              )}
-            </label>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="아이디어를 자세히 설명해주세요. 문제점, 해결방법, 기대효과 등"
-              rows={6}
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 resize-none"
+              placeholder="아이디어를 설명해주세요..."
+              rows={8}
+              className="w-full bg-transparent text-gray-300 placeholder-gray-500 focus:outline-none resize-none leading-relaxed"
             />
           </div>
 
-          {/* 핵심 노하우 (보호 모드에서만) */}
+          {/* 핵심 노하우 (보호 모드) */}
           {protectedMode && (
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                핵심 노하우{" "}
-                <span className="text-red-500">
-                  (Lv3 - 협업 승인된 사람만 공개)
+            <div className="bg-gray-800 rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Shield size={16} className="text-red-500" />
+                <span className="text-sm font-medium text-red-500">
+                  핵심 노하우
                 </span>
-              </label>
+                <span className="text-xs text-gray-500">
+                  (협업 승인 후 공개)
+                </span>
+              </div>
               <textarea
                 value={secretContent}
                 onChange={(e) => setSecretContent(e.target.value)}
-                placeholder="(선택) 실제 구현 방법, 수익 모델, 핵심 인사이트 등 비공개 정보"
+                placeholder="비공개 정보를 입력하세요 (선택)"
                 rows={4}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 resize-none"
+                className="w-full bg-transparent text-gray-300 placeholder-gray-500 focus:outline-none resize-none leading-relaxed"
               />
             </div>
           )}
 
           {/* 태그 */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              태그 (쉼표로 구분)
-            </label>
             <input
               type="text"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="예: AI, 자동화, 사이드프로젝트"
-              className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500"
+              placeholder="태그 (쉼표로 구분)"
+              className="w-full bg-gray-800 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 transition"
             />
           </div>
 
           {/* 안내 */}
-          {protectedMode ? (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 space-y-2">
-              <p className="text-sm text-blue-400 font-medium">
-                🔐 보호 모드 활성화
-              </p>
-              <p className="text-xs text-green-500">
-                Lv1: 제목 - 모든 사람에게 공개
-              </p>
-              <p className="text-xs text-yellow-500">
-                Lv2: 상세 내용 - 좋아요 10개 이상 시 열람 가능
-              </p>
-              <p className="text-xs text-red-500">
-                Lv3: 핵심 노하우 - 협업 신청 후 승인된 사람만
-              </p>
-              <p className="text-xs text-gray-400 mt-2">
-                타임스탬프 해시로 소유권이 기록됩니다.
-              </p>
-            </div>
-          ) : (
-            <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
-              <p className="text-sm text-orange-400 font-medium">
-                🎈 가벼운 모드
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                제목과 내용이 모든 사람에게 공개됩니다. 자유롭게 아이디어를
-                나눠보세요!
-              </p>
+          {protectedMode && (
+            <div className="flex items-start gap-3 bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+              <Info size={18} className="text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm">
+                <p className="text-blue-400 font-medium mb-1">보호 모드 안내</p>
+                <ul className="text-gray-400 space-y-1 text-xs">
+                  <li>• 제목은 모든 사람에게 공개</li>
+                  <li>• 내용은 좋아요 10개 이상 시 공개</li>
+                  <li>• 핵심 노하우는 협업 승인 후 공개</li>
+                  <li>• 타임스탬프 해시로 소유권 기록</li>
+                </ul>
+              </div>
             </div>
           )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className={`w-full py-3 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed ${
-              protectedMode
-                ? "bg-blue-500 text-white hover:bg-blue-600"
-                : "bg-orange-500 text-white hover:bg-orange-600"
-            }`}
-          >
-            {loading ? "작성 중..." : "아이디어 공유하기"}
-          </button>
         </form>
       </main>
     </div>

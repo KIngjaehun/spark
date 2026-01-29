@@ -2,21 +2,19 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { useAuth } from "../hooks/useAuth";
 import BottomNav from "../components/BottomNav";
-import { Trophy, TrendingUp, Crown, Medal, Award } from "lucide-react";
+import { Trophy, Heart, Coins, Crown, Medal, Award, Flame } from "lucide-react";
 
 export default function Ranking() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const [tab, setTab] = useState("ideas"); // ideas, users
+  const [tab, setTab] = useState("ideas");
   const [topIdeas, setTopIdeas] = useState([]);
   const [topUsers, setTopUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchRankings = async () => {
-      // 인기 아이디어 (좋아요순)
+      // 인기 아이디어
       const ideasQuery = query(
         collection(db, "ideas"),
         orderBy("createdAt", "desc"),
@@ -27,11 +25,10 @@ export default function Ranking() {
         id: doc.id,
         ...doc.data(),
       }));
-      // 좋아요순 정렬
       ideasData.sort((a, b) => (b.likes?.length || 0) - (a.likes?.length || 0));
       setTopIdeas(ideasData.slice(0, 10));
 
-      // 활발한 유저 (크레딧순)
+      // 활발한 유저
       const usersQuery = query(
         collection(db, "users"),
         orderBy("credits", "desc"),
@@ -50,53 +47,64 @@ export default function Ranking() {
     fetchRankings();
   }, []);
 
-  const getRankIcon = (index) => {
+  const getRankStyle = (index) => {
     switch (index) {
       case 0:
-        return <Crown size={20} className="text-yellow-500" />;
+        return {
+          icon: <Crown size={18} />,
+          color: "text-yellow-500",
+          bg: "bg-yellow-500/10",
+        };
       case 1:
-        return <Medal size={20} className="text-gray-400" />;
+        return {
+          icon: <Medal size={18} />,
+          color: "text-gray-400",
+          bg: "bg-gray-500/10",
+        };
       case 2:
-        return <Award size={20} className="text-amber-600" />;
+        return {
+          icon: <Award size={18} />,
+          color: "text-amber-600",
+          bg: "bg-amber-500/10",
+        };
       default:
-        return (
-          <span className="text-gray-500 text-sm font-medium w-5 text-center">
-            {index + 1}
-          </span>
-        );
+        return {
+          icon: <span className="text-sm font-bold">{index + 1}</span>,
+          color: "text-gray-500",
+          bg: "bg-gray-800",
+        };
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 pb-20">
-      <header className="border-b border-gray-800 px-4 py-3 sticky top-0 bg-gray-900 z-10">
-        <div className="max-w-2xl mx-auto">
+    <div className="min-h-screen bg-gray-900 pb-24">
+      <header className="sticky top-0 bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 z-10">
+        <div className="max-w-2xl mx-auto px-4 py-4">
           <div className="flex items-center gap-2 mb-4">
             <Trophy size={24} className="text-yellow-500" />
             <h1 className="text-xl font-bold text-white">랭킹</h1>
           </div>
 
-          {/* 탭 */}
-          <div className="flex border-b border-gray-800">
+          <div className="flex bg-gray-800 rounded-xl p-1">
             <button
               onClick={() => setTab("ideas")}
-              className={`flex-1 py-2 text-center font-medium ${
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${
                 tab === "ideas"
-                  ? "text-orange-500 border-b-2 border-orange-500"
-                  : "text-gray-400"
+                  ? "bg-orange-500 text-white"
+                  : "text-gray-400 hover:text-white"
               }`}
             >
               🔥 인기 아이디어
             </button>
             <button
               onClick={() => setTab("users")}
-              className={`flex-1 py-2 text-center font-medium ${
+              className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition ${
                 tab === "users"
-                  ? "text-orange-500 border-b-2 border-orange-500"
-                  : "text-gray-400"
+                  ? "bg-orange-500 text-white"
+                  : "text-gray-400 hover:text-white"
               }`}
             >
-              👑 활발한 유저
+              👑 TOP 유저
             </button>
           </div>
         </div>
@@ -104,61 +112,88 @@ export default function Ranking() {
 
       <main className="max-w-2xl mx-auto px-4 py-4">
         {loading ? (
-          <p className="text-gray-400 text-center py-8">로딩중...</p>
+          <div className="flex justify-center py-12">
+            <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : tab === "ideas" ? (
           <div className="space-y-3">
-            {topIdeas.map((idea, index) => (
-              <div
-                key={idea.id}
-                onClick={() => navigate(`/idea/${idea.id}`)}
-                className="flex items-center gap-4 bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition"
-              >
-                <div className="w-6 flex justify-center">
-                  {getRankIcon(index)}
-                </div>
-                <img
-                  src={idea.authorPhoto}
-                  alt={idea.authorName}
-                  className="w-10 h-10 rounded-full"
-                />
-                <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium truncate">
-                    {idea.title}
-                  </p>
-                  <p className="text-gray-500 text-sm">{idea.authorName}</p>
-                </div>
-                <div className="flex items-center gap-1 text-red-500">
-                  <TrendingUp size={16} />
-                  <span className="text-sm font-medium">
-                    {idea.likes?.length || 0}
-                  </span>
-                </div>
-              </div>
-            ))}
+            {topIdeas.length === 0 ? (
+              <p className="text-gray-400 text-center py-12">
+                아직 아이디어가 없습니다
+              </p>
+            ) : (
+              topIdeas.map((idea, index) => {
+                const rankStyle = getRankStyle(index);
+                return (
+                  <div
+                    key={idea.id}
+                    onClick={() => navigate(`/idea/${idea.id}`)}
+                    className="flex items-center gap-4 bg-gray-800 rounded-xl p-4 cursor-pointer hover:bg-gray-750 transition"
+                  >
+                    <div
+                      className={`w-10 h-10 ${rankStyle.bg} rounded-xl flex items-center justify-center ${rankStyle.color}`}
+                    >
+                      {rankStyle.icon}
+                    </div>
+                    <img
+                      src={idea.authorPhoto}
+                      alt={idea.authorName}
+                      className="w-10 h-10 rounded-full"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium truncate">
+                        {idea.title}
+                      </p>
+                      <p className="text-gray-500 text-sm">{idea.authorName}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-red-500 bg-red-500/10 px-3 py-1.5 rounded-full">
+                      <Heart size={14} fill="currentColor" />
+                      <span className="text-sm font-medium">
+                        {idea.likes?.length || 0}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         ) : (
           <div className="space-y-3">
-            {topUsers.map((userData, index) => (
-              <div
-                key={userData.id}
-                className="flex items-center gap-4 bg-gray-800 rounded-lg p-4"
-              >
-                <div className="w-6 flex justify-center">
-                  {getRankIcon(index)}
-                </div>
-                <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center text-white font-medium">
-                  {userData.displayName?.[0] || "?"}
-                </div>
-                <div className="flex-1">
-                  <p className="text-white font-medium">
-                    {userData.displayName || "익명"}
-                  </p>
-                </div>
-                <div className="text-yellow-500 font-medium">
-                  {userData.credits || 0} 크레딧
-                </div>
-              </div>
-            ))}
+            {topUsers.length === 0 ? (
+              <p className="text-gray-400 text-center py-12">
+                아직 유저가 없습니다
+              </p>
+            ) : (
+              topUsers.map((userData, index) => {
+                const rankStyle = getRankStyle(index);
+                return (
+                  <div
+                    key={userData.id}
+                    className="flex items-center gap-4 bg-gray-800 rounded-xl p-4"
+                  >
+                    <div
+                      className={`w-10 h-10 ${rankStyle.bg} rounded-xl flex items-center justify-center ${rankStyle.color}`}
+                    >
+                      {rankStyle.icon}
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">
+                      {userData.displayName?.[0]?.toUpperCase() || "?"}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-white font-medium">
+                        {userData.displayName || "익명"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-full">
+                      <Coins size={14} />
+                      <span className="text-sm font-medium">
+                        {userData.credits || 0}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         )}
       </main>

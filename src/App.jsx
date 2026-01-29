@@ -1,5 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Write from "./pages/Write";
@@ -11,20 +10,18 @@ import CollabManage from "./pages/CollabManage";
 import Onboarding from "./pages/Onboarding";
 
 function App() {
-  const [showOnboarding, setShowOnboarding] = useState(false);
-
-  useEffect(() => {
-    const done = localStorage.getItem("spark_onboarding_done");
-    if (!done) {
-      setShowOnboarding(true);
-    }
-  }, []);
+  const onboardingDone = localStorage.getItem("spark_onboarding_done");
 
   return (
     <BrowserRouter>
       <Routes>
-        {showOnboarding && <Route path="/" element={<Onboarding />} />}
-        <Route path="/" element={<Home />} />
+        <Route
+          path="/"
+          element={
+            onboardingDone ? <Home /> : <Navigate to="/onboarding" replace />
+          }
+        />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/login" element={<Login />} />
         <Route path="/write" element={<Write />} />
         <Route path="/mypage" element={<MyPage />} />
@@ -32,7 +29,6 @@ function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/collab-manage" element={<CollabManage />} />
-        <Route path="/onboarding" element={<Onboarding />} />
       </Routes>
     </BrowserRouter>
   );
