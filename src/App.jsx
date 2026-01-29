@@ -8,6 +8,7 @@ import Notifications from "./pages/Notifications";
 import Ranking from "./pages/Ranking";
 import CollabManage from "./pages/CollabManage";
 import Onboarding from "./pages/Onboarding";
+import Search from "./pages/Search";
 
 function App() {
   const onboardingDone = localStorage.getItem("spark_onboarding_done");
@@ -29,6 +30,7 @@ function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/collab-manage" element={<CollabManage />} />
+        <Route path="/search" element={<Search />} />
       </Routes>
     </BrowserRouter>
   );
