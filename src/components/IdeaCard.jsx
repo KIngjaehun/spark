@@ -6,6 +6,9 @@ import {
   increment,
   getDoc,
   setDoc,
+  addDoc,
+  collection,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { Heart, MessageCircle, Lock, Shield, Sparkles } from "lucide-react";
@@ -45,6 +48,20 @@ export default function IdeaCard({ idea, user, onClick }) {
       } else {
         await setDoc(authorRef, { credits: 105 });
       }
+
+      // 알림 보내기 (본인 제외)
+      if (user.uid !== idea.authorId) {
+        await addDoc(collection(db, "notifications"), {
+          toUserId: idea.authorId,
+          fromUserId: user.uid,
+          fromUserName: user.displayName,
+          type: "like",
+          message: `${user.displayName}님이 "${idea.title}" 아이디어를 좋아합니다`,
+          ideaId: idea.id,
+          read: false,
+          createdAt: serverTimestamp(),
+        });
+      }
     }
   };
 
@@ -70,7 +87,6 @@ export default function IdeaCard({ idea, user, onClick }) {
         isProtected ? "border-blue-500/30" : "border-gray-700"
       }`}
     >
-      {/* 모드 뱃지 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <img
@@ -101,7 +117,6 @@ export default function IdeaCard({ idea, user, onClick }) {
 
       <h2 className="text-white text-lg font-bold mb-2">{idea.title}</h2>
 
-      {/* 내용 */}
       {isLocked && !isAuthor ? (
         <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
           <Lock size={14} />
@@ -140,7 +155,7 @@ export default function IdeaCard({ idea, user, onClick }) {
           <MessageCircle size={18} />
           {commentCount}
         </div>
-        {!isLiked && (
+        {!isLiked && user && user.uid !== idea.authorId && (
           <span className="text-xs text-yellow-500 ml-auto">+5 크레딧</span>
         )}
       </div>

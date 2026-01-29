@@ -10,17 +10,19 @@ import {
 import { signOut } from "firebase/auth";
 import { db, auth } from "../firebase";
 import { useAuth } from "../hooks/useAuth";
+import { useCredits } from "../hooks/useCredits";
 import IdeaCard from "../components/IdeaCard";
-import { ArrowLeft } from "lucide-react";
+import BottomNav from "../components/BottomNav";
+import { ArrowLeft, Coins, Users, Settings, LogOut } from "lucide-react";
 
 export default function MyPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const { credits } = useCredits(user?.uid);
   const [myIdeas, setMyIdeas] = useState([]);
-  const [tab, setTab] = useState("my"); // "my" or "liked"
   const [likedIdeas, setLikedIdeas] = useState([]);
+  const [tab, setTab] = useState("my");
 
-  // 내 아이디어
   useEffect(() => {
     if (!user) return;
 
@@ -41,7 +43,6 @@ export default function MyPage() {
     return () => unsubscribe();
   }, [user]);
 
-  // 좋아요한 아이디어
   useEffect(() => {
     if (!user) return;
 
@@ -81,19 +82,22 @@ export default function MyPage() {
   }
 
   const displayIdeas = tab === "my" ? myIdeas : likedIdeas;
+  const totalLikes = myIdeas.reduce(
+    (sum, idea) => sum + (idea.likes?.length || 0),
+    0
+  );
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      {/* 헤더 */}
+    <div className="min-h-screen bg-gray-900 pb-20">
       <header className="border-b border-gray-800 px-4 py-3 sticky top-0 bg-gray-900 z-10">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
+        <div className="max-w-2xl mx-auto flex items-center justify-between">
+          <h1 className="text-lg font-bold text-white">마이페이지</h1>
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/collab-manage")}
             className="text-gray-400 hover:text-white"
           >
-            <ArrowLeft size={24} />
+            <Users size={20} />
           </button>
-          <h1 className="text-lg font-bold text-white">마이페이지</h1>
         </div>
       </header>
 
@@ -105,23 +109,42 @@ export default function MyPage() {
             alt={user.displayName}
             className="w-16 h-16 rounded-full"
           />
-          <div>
+          <div className="flex-1">
             <h2 className="text-xl font-bold text-white">{user.displayName}</h2>
             <p className="text-gray-400 text-sm">{user.email}</p>
           </div>
         </div>
 
         {/* 통계 */}
-        <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-gray-800 rounded-lg p-4 text-center">
             <p className="text-2xl font-bold text-white">{myIdeas.length}</p>
-            <p className="text-gray-400 text-sm">작성한 아이디어</p>
+            <p className="text-gray-400 text-xs">아이디어</p>
           </div>
           <div className="bg-gray-800 rounded-lg p-4 text-center">
-            <p className="text-2xl font-bold text-white">{likedIdeas.length}</p>
-            <p className="text-gray-400 text-sm">좋아요한 아이디어</p>
+            <p className="text-2xl font-bold text-red-500">{totalLikes}</p>
+            <p className="text-gray-400 text-xs">받은 좋아요</p>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4 text-center">
+            <div className="flex items-center justify-center gap-1">
+              <Coins size={20} className="text-yellow-500" />
+              <p className="text-2xl font-bold text-yellow-500">{credits}</p>
+            </div>
+            <p className="text-gray-400 text-xs">크레딧</p>
           </div>
         </div>
+
+        {/* 협업 관리 바로가기 */}
+        <button
+          onClick={() => navigate("/collab-manage")}
+          className="w-full flex items-center justify-between bg-gray-800 rounded-lg p-4 mb-6 hover:bg-gray-700 transition"
+        >
+          <div className="flex items-center gap-3">
+            <Users size={20} className="text-blue-500" />
+            <span className="text-white">협업 신청 관리</span>
+          </div>
+          <span className="text-gray-500">→</span>
+        </button>
 
         {/* 탭 */}
         <div className="flex border-b border-gray-800 mb-6">
@@ -170,11 +193,14 @@ export default function MyPage() {
         {/* 로그아웃 */}
         <button
           onClick={handleLogout}
-          className="w-full mt-8 py-3 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white transition"
+          className="w-full mt-8 py-3 flex items-center justify-center gap-2 text-red-500 border border-red-500 rounded-lg hover:bg-red-500 hover:text-white transition"
         >
+          <LogOut size={18} />
           로그아웃
         </button>
       </main>
+
+      <BottomNav />
     </div>
   );
 }
