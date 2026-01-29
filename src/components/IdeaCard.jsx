@@ -11,7 +11,14 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase";
-import { Heart, MessageCircle, Lock, Shield, Sparkles } from "lucide-react";
+import {
+  Heart,
+  MessageCircle,
+  Lock,
+  Shield,
+  Sparkles,
+  Eye,
+} from "lucide-react";
 
 export default function IdeaCard({ idea, user, onClick }) {
   const isLiked = user && idea.likes?.includes(user.uid);
@@ -41,7 +48,6 @@ export default function IdeaCard({ idea, user, onClick }) {
         likes: arrayUnion(user.uid),
       });
 
-      // 작성자 크레딧 추가
       const authorSnap = await getDoc(authorRef);
       if (authorSnap.exists()) {
         await updateDoc(authorRef, { credits: increment(5) });
@@ -49,7 +55,6 @@ export default function IdeaCard({ idea, user, onClick }) {
         await setDoc(authorRef, { credits: 105 });
       }
 
-      // 알림 보내기 (본인 제외)
       if (user.uid !== idea.authorId) {
         await addDoc(collection(db, "notifications"), {
           toUserId: idea.authorId,
@@ -83,16 +88,19 @@ export default function IdeaCard({ idea, user, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`bg-gray-800 border rounded-lg p-4 hover:border-gray-600 cursor-pointer transition ${
-        isProtected ? "border-blue-500/30" : "border-gray-700"
+      className={`group bg-gray-800 border rounded-2xl p-5 cursor-pointer transition-all hover:shadow-lg ${
+        isProtected
+          ? "border-blue-500/30 hover:border-blue-500/50 hover:shadow-blue-500/10"
+          : "border-gray-700 hover:border-gray-600"
       }`}
     >
-      <div className="flex items-center justify-between mb-3">
+      {/* 상단: 작성자 + 모드 */}
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <img
             src={idea.authorPhoto}
             alt={idea.authorName}
-            className="w-8 h-8 rounded-full"
+            className="w-10 h-10 rounded-full border-2 border-gray-700"
           />
           <div>
             <p className="text-white text-sm font-medium">{idea.authorName}</p>
@@ -103,60 +111,92 @@ export default function IdeaCard({ idea, user, onClick }) {
         </div>
 
         {isProtected ? (
-          <div className="flex items-center gap-1 bg-blue-500/20 px-2 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 bg-blue-500/10 border border-blue-500/30 px-2.5 py-1 rounded-full">
             <Shield size={12} className="text-blue-400" />
-            <span className="text-xs text-blue-400">보호됨</span>
+            <span className="text-xs text-blue-400 font-medium">보호됨</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1 bg-orange-500/20 px-2 py-1 rounded-full">
+          <div className="flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/30 px-2.5 py-1 rounded-full">
             <Sparkles size={12} className="text-orange-400" />
-            <span className="text-xs text-orange-400">공개</span>
+            <span className="text-xs text-orange-400 font-medium">공개</span>
           </div>
         )}
       </div>
 
-      <h2 className="text-white text-lg font-bold mb-2">{idea.title}</h2>
+      {/* 제목 */}
+      <h2 className="text-white text-lg font-bold mb-2 group-hover:text-orange-400 transition">
+        {idea.title}
+      </h2>
 
+      {/* 내용 */}
       {isLocked && !isAuthor ? (
-        <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
-          <Lock size={14} />
-          <span>좋아요 {likeCount}/10 달성 시 내용 공개</span>
+        <div className="flex items-center gap-3 bg-gray-700/50 rounded-xl p-4 mb-4">
+          <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center">
+            <Lock size={18} className="text-yellow-500" />
+          </div>
+          <div>
+            <p className="text-yellow-500 text-sm font-medium">내용 잠김</p>
+            <p className="text-gray-500 text-xs">
+              좋아요 {likeCount}/10 달성 시 공개
+            </p>
+          </div>
+          <div className="ml-auto">
+            <div className="w-16 h-1.5 bg-gray-600 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-500 rounded-full transition-all"
+                style={{ width: `${Math.min((likeCount / 10) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
         </div>
       ) : (
-        <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+        <p className="text-gray-400 text-sm mb-4 line-clamp-2 leading-relaxed">
           {idea.content}
         </p>
       )}
 
+      {/* 태그 */}
       {idea.tags?.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-3">
-          {idea.tags.map((tag, index) => (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {idea.tags.slice(0, 4).map((tag, index) => (
             <span
               key={index}
-              className="bg-gray-700 text-gray-300 text-xs px-2 py-1 rounded"
+              className="bg-gray-700/50 text-gray-300 text-xs px-2.5 py-1 rounded-lg"
             >
               #{tag}
             </span>
           ))}
+          {idea.tags.length > 4 && (
+            <span className="text-gray-500 text-xs px-2 py-1">
+              +{idea.tags.length - 4}
+            </span>
+          )}
         </div>
       )}
 
-      <div className="flex items-center gap-4 pt-3 border-t border-gray-700">
+      {/* 하단: 좋아요, 댓글 */}
+      <div className="flex items-center gap-1 pt-4 border-t border-gray-700/50">
         <button
           onClick={handleLike}
-          className={`flex items-center gap-1 text-sm ${
-            isLiked ? "text-red-500" : "text-gray-400 hover:text-red-500"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition ${
+            isLiked
+              ? "text-red-500 bg-red-500/10"
+              : "text-gray-400 hover:text-red-500 hover:bg-red-500/10"
           }`}
         >
           <Heart size={18} fill={isLiked ? "currentColor" : "none"} />
-          {likeCount}
+          <span className="text-sm font-medium">{likeCount}</span>
         </button>
-        <div className="flex items-center gap-1 text-sm text-gray-400">
+
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400">
           <MessageCircle size={18} />
-          {commentCount}
+          <span className="text-sm font-medium">{commentCount}</span>
         </div>
+
         {!isLiked && user && user.uid !== idea.authorId && (
-          <span className="text-xs text-yellow-500 ml-auto">+5 크레딧</span>
+          <span className="ml-auto text-xs text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded-full">
+            +5 크레딧
+          </span>
         )}
       </div>
     </div>

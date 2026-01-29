@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useEffect, useState } from "react";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Write from "./pages/Write";
@@ -7,11 +8,22 @@ import IdeaDetail from "./pages/IdeaDetail";
 import Notifications from "./pages/Notifications";
 import Ranking from "./pages/Ranking";
 import CollabManage from "./pages/CollabManage";
+import Onboarding from "./pages/Onboarding";
 
 function App() {
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    const done = localStorage.getItem("spark_onboarding_done");
+    if (!done) {
+      setShowOnboarding(true);
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
+        {showOnboarding && <Route path="/" element={<Onboarding />} />}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/write" element={<Write />} />
@@ -20,6 +32,7 @@ function App() {
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/ranking" element={<Ranking />} />
         <Route path="/collab-manage" element={<CollabManage />} />
+        <Route path="/onboarding" element={<Onboarding />} />
       </Routes>
     </BrowserRouter>
   );
